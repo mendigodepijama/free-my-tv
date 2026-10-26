@@ -56,6 +56,13 @@ final class Backdrop {
     /** `lightBg` and `nightBg` (bw × bh): the background itself, when it isn't the frosted version. */
     private Backdrop(Bitmap image, int[] frost, int[] glass, Bitmap wide, Bitmap tall, int[] light, int[] lightGlass,
                      int[] night, int[] nightGlass, int[] lightBg, int[] nightBg, int bw, int bh) {
+        this(image, frost, glass, wide, tall, light, lightGlass, night, nightGlass,
+             lightBg == null ? null : Bitmap.createBitmap(lightBg, bw, bh, Bitmap.Config.ARGB_8888),
+             nightBg == null ? null : Bitmap.createBitmap(nightBg, bw, bh, Bitmap.Config.ARGB_8888));
+    }
+
+    private Backdrop(Bitmap image, int[] frost, int[] glass, Bitmap wide, Bitmap tall, int[] light, int[] lightGlass,
+                     int[] night, int[] nightGlass, Bitmap lightImage, Bitmap nightImage) {
         this.image = image;
         this.frost = frost;
         this.glass = glass;
@@ -67,8 +74,8 @@ final class Backdrop {
         this.lightGlass = lightGlass;
         this.nightFrost = night;
         this.nightGlass = nightGlass;
-        lightImage = lightBg == null ? null : Bitmap.createBitmap(lightBg, bw, bh, Bitmap.Config.ARGB_8888);
-        nightImage = nightBg == null ? null : Bitmap.createBitmap(nightBg, bw, bh, Bitmap.Config.ARGB_8888);
+        this.lightImage = lightImage;
+        this.nightImage = nightImage;
     }
 
     static Backdrop make(Bitmap src, boolean forLight) {
@@ -102,10 +109,43 @@ final class Backdrop {
             int[] night = darken(frost.clone(), 0.76f);
             int[] nightGlass = darken(glass, 0.56f);
             if (own) {
-                int[] sharp = reduce(out, GW, GH, 1, 1);
-                int[] lightBg = ramp(sharp.clone(), 0.82f, 0.45f, true), nightBg = ramp(sharp, 0.76f, 0.5f, false);
-                out.recycle();
-                return new Backdrop(null, frost, null, wide, tall, light, lightGlass, night, nightGlass, lightBg, nightBg, GW, GH);
+                // Crisp Full HD photo on the home screen (direct hardware textures)
+                Bitmap nightBm = out.copy(Bitmap.Config.ARGB_8888, true);
+                Canvas nc = new Canvas(nightBm);
+                Paint scrim = new Paint(Paint.DITHER_FLAG);
+                // Top scrim behind clock / weather
+                scrim.setShader(new LinearGradient(0, 0, 0, H * 0.32f,
+                        new int[] {black(0.55f), black(0.18f), 0},
+                        new float[] {0, 0.6f, 1f}, Shader.TileMode.CLAMP));
+                nc.drawRect(0, 0, W, H * 0.32f, scrim);
+                // Left scrim behind title / time
+                scrim.setShader(new LinearGradient(0, 0, W * 0.45f, 0,
+                        new int[] {black(0.45f), black(0.15f), 0},
+                        new float[] {0, 0.7f, 1f}, Shader.TileMode.CLAMP));
+                nc.drawRect(0, 0, W * 0.45f, H, scrim);
+                // Bottom scrim behind shelf
+                scrim.setShader(new LinearGradient(0, H * 0.45f, 0, H,
+                        new int[] {0, black(0.3f), black(0.65f)},
+                        new float[] {0, 0.5f, 1f}, Shader.TileMode.CLAMP));
+                nc.drawRect(0, H * 0.45f, W, H, scrim);
+
+                // Day / Light version
+                Bitmap lightBm = out;
+                Canvas lc = new Canvas(lightBm);
+                Paint lightScrim = new Paint(Paint.DITHER_FLAG);
+                int white0 = 0x00FFFFFF, white30 = 0x4DFFFFFF, white65 = 0xA6FFFFFF;
+                lightScrim.setShader(new LinearGradient(0, 0, 0, H * 0.32f,
+                        new int[] {white65, white30, white0},
+                        new float[] {0, 0.6f, 1f}, Shader.TileMode.CLAMP));
+                lc.drawRect(0, 0, W, H * 0.32f, lightScrim);
+                lightScrim.setShader(new LinearGradient(0, H * 0.45f, 0, H,
+                        new int[] {white0, white30, white65},
+                        new float[] {0, 0.5f, 1f}, Shader.TileMode.CLAMP));
+                lc.drawRect(0, H * 0.45f, W, H, lightScrim);
+
+                Bitmap gpuNight = gpu(nightBm);
+                Bitmap gpuLight = gpu(lightBm);
+                return new Backdrop(null, frost, null, wide, tall, light, lightGlass, night, nightGlass, gpuLight, gpuNight);
             }
             out.recycle();
             return new Backdrop(null, frost, null, wide, tall, light, lightGlass, night, nightGlass);

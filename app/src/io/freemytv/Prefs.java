@@ -137,6 +137,76 @@ final class Prefs {
 
     static void setTheme(String v) { put("theme", v); }
 
+    // MARK: - Background Color Palette
+
+    static final String[] BG_COLORS = {"default", "blue", "violet", "emerald", "amber", "crimson"};
+
+    static String bgColor() {
+        String v = sp().getString("bgColor", "default").trim().toLowerCase(Locale.ROOT);
+        for (String c : BG_COLORS) if (c.equals(v)) return v;
+        return "default";
+    }
+
+    static void setBgColor(String v) { put("bgColor", v); }
+
+    static String bgColorName(String color) {
+        switch (color) {
+            case "blue":    return Ui.tr("Midnight Blue");
+            case "violet":  return Ui.tr("Deep Violet");
+            case "emerald": return Ui.tr("Emerald");
+            case "amber":   return Ui.tr("Sunset Amber");
+            case "crimson": return Ui.tr("Crimson");
+            default:        return Ui.tr("Default");
+        }
+    }
+
+    /** Top and bottom colors for the dark/night gradient. */
+    static int[] nightGradientColors() {
+        switch (bgColor()) {
+            case "blue":    return new int[] {0xFF0F1E36, 0xFF060B14};
+            case "violet":  return new int[] {0xFF210F33, 0xFF0C0514};
+            case "emerald": return new int[] {0xFF0A261C, 0xFF030F0A};
+            case "amber":   return new int[] {0xFF2B160C, 0xFF120804};
+            case "crimson": return new int[] {0xFF290C14, 0xFF100307};
+            default:        return new int[] {0xFF1C1C1E, 0xFF0B0B0D};
+        }
+    }
+
+    /** Top and bottom colors for the day/light gradient. */
+    static int[] lightGradientColors() {
+        switch (bgColor()) {
+            case "blue":    return new int[] {0xFFEEF3F8, 0xFFD8E2EE};
+            case "violet":  return new int[] {0xFFF4EEF8, 0xFFE5D7EC};
+            case "emerald": return new int[] {0xFFECF5EF, 0xFFD3E6DA};
+            case "amber":   return new int[] {0xFFF8F3ED, 0xFFEDE0D1};
+            case "crimson": return new int[] {0xFFF8ECF0, 0xFFEBD3DB};
+            default:        return new int[] {0xFFF5F5F7, 0xFFE2E2E7};
+        }
+    }
+
+    /** Tint for neutral frosted glass / Liquid Glass when no photo is active. */
+    static int nightGlassColor() {
+        switch (bgColor()) {
+            case "blue":    return 0xFF0A1424;
+            case "violet":  return 0xFF170A24;
+            case "emerald": return 0xFF061A13;
+            case "amber":   return 0xFF1E0F08;
+            case "crimson": return 0xFF1C080E;
+            default:        return 0xFF141416;
+        }
+    }
+
+    static int lightGlassColor() {
+        switch (bgColor()) {
+            case "blue":    return 0xFFE4EBF4;
+            case "violet":  return 0xFFEBE3F4;
+            case "emerald": return 0xFFE1ECE4;
+            case "amber":   return 0xFFEFE8DF;
+            case "crimson": return 0xFFEFE1E6;
+            default:        return 0xFFEBEBF0;
+        }
+    }
+
     // MARK: - City
 
     static String city() { return sp().getString("city", Place.city()).trim(); }

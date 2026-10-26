@@ -948,7 +948,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             nightPair = false;
             return;
         }
-        int color = blend(0xFFEBEBF0, 0xFF141416, night);
+        int color = blend(Prefs.lightGlassColor(), Prefs.nightGlassColor(), night);
         java.util.Arrays.fill(neutralFrostPx, color);
         java.util.Arrays.fill(neutralGlassPx, color);
         scene.setFrost(neutralFrostPx);
@@ -3019,8 +3019,14 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         // Drawer open: the background lightens (by day) or darkens (at night), as a filter on the drawing itself.
         android.graphics.ColorFilter v = veil(tone(0.32f, 0.42f) * Ui.clamp(drawer.value), blend(0xFFFFFFFF, 0xFF000000, night));
         if (bgTo == null || (fading && bgFrom == null)) {
-            if (lightGradient == null) lightGradient = Ui.gradient(h, 0xFFF5F5F7, 0xFFE2E2E7);
-            if (nightGradient == null) nightGradient = Ui.gradient(h, 0xFF1C1C1E, 0xFF0B0B0D);
+            if (lightGradient == null) {
+                int[] g = Prefs.lightGradientColors();
+                lightGradient = Ui.gradient(h, g[0], g[1]);
+            }
+            if (nightGradient == null) {
+                int[] g = Prefs.nightGradientColors();
+                nightGradient = Ui.gradient(h, g[0], g[1]);
+            }
             fill.setColorFilter(v);
             fill.setColor(0xFF000000);
             if (night < 0.999f) {
