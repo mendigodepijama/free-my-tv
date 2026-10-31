@@ -147,7 +147,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private final Spring[] cardFocus = new Spring[3];
     private final RectF[] cardRects = new RectF[3];
     private final List<HomeApps.Item> lightButtons = new ArrayList<>();
-    private Paint lTitle, lTab, lTabOn, lCardTitle, lCardMeta, lQuote, lTip, lDate, lClock, lWeather, lClockQuote;
+    private Paint lTitle, lTab, lTabOn, lCardTitle, lCardMeta, lQuote, lTip, lDate, lClock, lWeather, lClockQuote, lGreeting, lAmPm, lSeparator;
     private Shader lightGradient;
 
     // Shelf
@@ -238,7 +238,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private static final long BURST_MS = 1500;
     private int w, h;
     private float k = 1;
-    private String clockText = "", dateText = "", weatherLine = "";
+    private String clockText = "", dateText = "", greetingText = "", clockAmPmText = "", weatherLine = "";
     /** "Off in 42 min" next to the round buttons while the sleep timer runs (Settings > Sleep Timer); "" otherwise. */
     private String sleepText = "";
     private long weatherLineAt = -1;
@@ -634,10 +634,20 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         lQuote = Ui.numbers(Ui.regular, 21 * k, L_FAINT);
         lTip = Ui.text(Ui.semibold, 25 * k, L_INK);
         lTip.setTextAlign(Paint.Align.CENTER);
-        lDate = Ui.text(Ui.semibold, 34 * k, L_DIM);
-        lClock = Ui.numbers(Ui.light, 200 * k, L_INK);
-        lClock.setLetterSpacing(-0.01f);
-        lWeather = Ui.text(Ui.medium, 34 * k, L_DIM);
+        lGreeting = Ui.text(Ui.semibold, 18 * k, L_DIM);
+        lGreeting.setLetterSpacing(0.08f);
+        lDate = Ui.text(Ui.medium, 22 * k, L_DIM);
+        lDate.setLetterSpacing(0.02f);
+        lClock = Ui.numbers(Ui.medium, 58 * k, L_INK);
+        lClock.setLetterSpacing(-0.02f);
+        lAmPm = Ui.text(Ui.semibold, 18 * k, L_DIM);
+        lAmPm.setLetterSpacing(0.04f);
+        lSeparator = new Paint(Paint.ANTI_ALIAS_FLAG);
+        lSeparator.setStrokeWidth(2 * k);
+        lWeather = Ui.text(Ui.medium, 22 * k, L_DIM);
+        for (Paint p : new Paint[] {lGreeting, lDate, lClock, lAmPm, lWeather}) {
+            p.setShadowLayer(8 * k, 0, 1 * k, 0x80000000);
+        }
         lClockQuote = Ui.numbers(Ui.medium, 28 * k, L_DIM);
         lightGradient = null;
         buttonPaint = Ui.text(Ui.semibold, 29 * k, INK);
@@ -824,8 +834,10 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         long minute = now / 60_000;
         if (minute == clockMinute || clockPaint == null) return false;
         clockMinute = minute;
-        clockText = Ui.clock(now);
+        clockText = Ui.clockTime(now);
+        clockAmPmText = Ui.clockAmPm(now);
         dateText = Ui.date(now);
+        greetingText = Ui.greeting(now);
         return true;
     }
 
@@ -1044,6 +1056,9 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         lClock.setColor(tone(L_INK, WHITE));
         lWeather.setColor(tone(L_DIM, 0xFF98989D));
         lClockQuote.setColor(tone(L_DIM, 0xFF98989D));
+        if (lGreeting != null) lGreeting.setColor(tone(L_DIM, 0x99FFFFFF));
+        if (lAmPm != null) lAmPm.setColor(tone(L_DIM, 0xCCFFFFFF));
+        if (lSeparator != null) lSeparator.setColor(tone(L_FAINT, 0x4DFFFFFF));
         staleQuote.setColor(tone(L_FAINT, 0x99FFFFFF));
     }
 
@@ -3099,22 +3114,39 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
 
     private void drawClock(Canvas c) {
         float x = MARGIN * k;
-        c.drawText(dateText, x - Ui.leftBearing(lDate, dateText), L_DATE_BASE * k, lDate);
-        c.drawText(clockText, x - Ui.leftBearing(lClock, clockText), L_CLOCK_BASE * k, lClock);
-        HomeData.Weather wx = data.weather;
-        if (!Prefs.weather() || Double.isNaN(wx.temp)) return;
-        if (data.weatherAt != weatherLineAt || Prefs.version != weatherLinePrefs || !Ui.language.equals(weatherLineLanguage)) {
-            weatherLineAt = data.weatherAt;
-            weatherLinePrefs = Prefs.version;
-            weatherLineLanguage = Ui.language;
-            weatherLine = HomeData.degrees(wx.temp) + "  " + HomeData.condition(wx.code, wx.isDay) + "   "
-                    + HomeData.highLow(wx, "  ");
+        if (greetingText != null && !greetingText.isEmpty()) {
+            c.drawText(greetingText, x, 68 * k, lGreeting);
         }
-        float size = 40 * k, base = L_WEATHER_BASE * k;
-        String symbol = Symbols.weather(wx.code, wx.isDay);
-        float sw = Symbols.width(getContext(), symbol, size);
-        Symbols.draw(getContext(), c, symbol, x + sw / 2, base - Ui.halfCap(lWeather), size, lWeather.getColor());
-        c.drawText(weatherLine, x + sw + 16 * k, base, lWeather);
+        float base = 128 * k;
+        c.drawText(clockText, x, base, lClock);
+        float curX = x + lClock.measureText(clockText);
+        if (clockAmPmText != null && !clockAmPmText.isEmpty()) {
+            c.drawText(clockAmPmText, curX + 6 * k, base - 2 * k, lAmPm);
+            curX += 6 * k + lAmPm.measureText(clockAmPmText);
+        }
+        float sepX = curX + 18 * k;
+        c.drawLine(sepX, base - 34 * k, sepX, base - 4 * k, lSeparator);
+        curX = sepX + 18 * k;
+
+        String dateUpper = (dateText != null ? dateText : "").toUpperCase(Ui.locale());
+        c.drawText(dateUpper, curX, base - 4 * k, lDate);
+        curX += lDate.measureText(dateUpper);
+
+        HomeData.Weather wx = data.weather;
+        if (Prefs.weather() && !Double.isNaN(wx.temp)) {
+            float sep2X = curX + 18 * k;
+            c.drawLine(sep2X, base - 34 * k, sep2X, base - 4 * k, lSeparator);
+            curX = sep2X + 18 * k;
+
+            String symbol = Symbols.weather(wx.code, wx.isDay);
+            float iconSize = 24 * k;
+            float sw = Symbols.width(getContext(), symbol, iconSize);
+            Symbols.draw(getContext(), c, symbol, curX + sw / 2, base - 4 * k - Ui.halfCap(lWeather), iconSize, lWeather.getColor());
+            curX += sw + 8 * k;
+
+            String temp = HomeData.degrees(wx.temp);
+            c.drawText(temp, curX, base - 4 * k, lWeather);
+        }
     }
 
     /**

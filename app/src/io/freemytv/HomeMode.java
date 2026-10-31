@@ -411,8 +411,11 @@ final class HomeMode {
             }
             busy(c, Ui.tr("Switching the home screen and screensaver…"));
             Watchdog.clear(c);
-            check(adb.shell("cmd package set-home-activity " + HOME_ACTIVITY), "Success",
-                    Ui.tr("Android didn't accept the new home screen"));
+            String setHome = adb.shell("cmd package set-home-activity " + HOME_ACTIVITY);
+            if (!setHome.contains("Success") && (setHome.contains("Exception") || setHome.contains("Error")
+                    || !homeHolder(adb).contains(PKG))) {
+                throw new IOException(Ui.tr("Android didn't accept the new home screen") + " (" + setHome.trim() + ")");
+            }
             if (Config.SCREENSAVER) adb.shell("settings put secure screensaver_components " + DREAM);
             boolean jmOurs = !jm || setJmHome(adb, PKG);
             if (!jmOurs) AppLog.w("JmLauncher keeps the Home button: " + JM_HOME + " didn't take");
@@ -568,12 +571,14 @@ final class HomeMode {
         if (home.isEmpty() && adb.shell("pm path " + packageOf(GOOGLE_HOME)).contains("package:")) home = GOOGLE_HOME;
         if (!home.isEmpty()) {
             adb.shell("pm enable " + packageOf(home));
-            if (adb.shell("cmd package set-home-activity '" + home + "'").contains("Success")) return true;
+            String out = adb.shell("cmd package set-home-activity '" + home + "'");
+            if (out.contains("Success") || (out.trim().isEmpty() && !out.contains("Exception") && !out.contains("Error"))) return true;
         }
         String stock = stockHome(adb);
         if (stock != null && !stock.equals(home)) {
             adb.shell("pm enable " + packageOf(stock));
-            if (adb.shell("cmd package set-home-activity '" + stock + "'").contains("Success")) return true;
+            String out = adb.shell("cmd package set-home-activity '" + stock + "'");
+            if (out.contains("Success") || (out.trim().isEmpty() && !out.contains("Exception") && !out.contains("Error"))) return true;
         }
         adb.shell("cmd role remove-role-holder --user 0 android.app.role.HOME " + PKG);
         return !homeHolder(adb).contains(PKG);

@@ -1108,7 +1108,7 @@ final class HomeApps {
         } catch (PackageManager.NameNotFoundException ignored) {
         }
         if (icon == null) return darkTile(TILE_W, TILE_H);
-        boolean adaptive = icon instanceof AdaptiveIconDrawable;
+        boolean adaptive = android.os.Build.VERSION.SDK_INT >= 26 && AdaptiveHelper.isAdaptive(icon);
         // Drawn at the icon's own resolution (the whole tile, so the squircle's edge is smooth too), then filtered down.
         float drawn = TILE_H * (adaptive ? 0.56f * 1.5f : 0.46f);
         float k = detail(icon, drawn, drawn);
@@ -1118,25 +1118,7 @@ final class HomeApps {
         int size = Math.round(th * 0.56f);
         float left = (tw - size) / 2f, top = (th - size) / 2f;
         if (adaptive) {
-            // Adaptive icon: the layers in a squircle, like an Apple icon. Drawn apart, then filling an anti-aliased
-            // rounded rectangle (clipPath leaves stair-stepped corners).
-            AdaptiveIconDrawable a = (AdaptiveIconDrawable) icon;
-            Bitmap layers = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
-            Canvas lc = new Canvas(layers);
-            int pad = size / 4;
-            for (Drawable layer : new Drawable[] {a.getBackground(), a.getForeground()}) {
-                if (layer == null) continue;
-                layer.setBounds(-pad, -pad, size + pad, size + pad);
-                layer.draw(lc);
-            }
-            int x = Math.round(left), y = Math.round(top);
-            BitmapShader shader = new BitmapShader(layers, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
-            Matrix m = new Matrix();
-            m.setTranslate(x, y);
-            shader.setLocalMatrix(m);
-            Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-            p.setShader(shader);
-            canvas.drawRoundRect(x, y, x + size, y + size, size * 0.2237f, size * 0.2237f, p);
+            AdaptiveHelper.draw(canvas, icon, size, left, top);
         } else {
             // Legacy icon (a free-form drawing with transparency): smaller, no frame.
             int s = Math.round(th * 0.46f);
@@ -1255,5 +1237,30 @@ final class HomeApps {
         }
         if (bottom < 0) return b;
         return Bitmap.createBitmap(b, left, top, right - left + 1, bottom - top + 1);
+    }
+    private static class AdaptiveHelper {
+        static boolean isAdaptive(Drawable d) {
+            return d instanceof AdaptiveIconDrawable;
+        }
+
+        static void draw(Canvas canvas, Drawable icon, int size, float left, float top) {
+            AdaptiveIconDrawable a = (AdaptiveIconDrawable) icon;
+            Bitmap layers = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+            Canvas lc = new Canvas(layers);
+            int pad = size / 4;
+            for (Drawable layer : new Drawable[] {a.getBackground(), a.getForeground()}) {
+                if (layer == null) continue;
+                layer.setBounds(-pad, -pad, size + pad, size + pad);
+                layer.draw(lc);
+            }
+            int x = Math.round(left), y = Math.round(top);
+            BitmapShader shader = new BitmapShader(layers, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
+            Matrix m = new Matrix();
+            m.setTranslate(x, y);
+            shader.setLocalMatrix(m);
+            Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+            p.setShader(shader);
+            canvas.drawRoundRect(x, y, x + size, y + size, size * 0.2237f, size * 0.2237f, p);
+        }
     }
 }

@@ -68,16 +68,32 @@ final class Ui {
     /** Inter at an optical size (14 = text, 32 = display) and weight; the system font if the file is missing. */
     private static Typeface font(AssetManager a, int opticalSize, int weight) {
         if (has(a, FONT)) {
-            try {
-                Typeface t = new Typeface.Builder(a, FONT)
-                        .setFontVariationSettings("'opsz' " + opticalSize + ", 'wght' " + weight).build();
-                if (t != null) return t;
-            } catch (RuntimeException ignored) {
+            if (Build.VERSION.SDK_INT >= 26) {
+                try {
+                    Typeface t = Api26Font.build(a, FONT, opticalSize, weight);
+                    if (t != null) return t;
+                } catch (Throwable ignored) {
+                }
+            } else {
+                try {
+                    Typeface base = Typeface.createFromAsset(a, FONT);
+                    if (base != null) {
+                        return Typeface.create(base, weight >= 600 ? Typeface.BOLD : Typeface.NORMAL);
+                    }
+                } catch (Throwable ignored) {
+                }
             }
         }
         // Typeface.create(family, weight, italic) is Android 9+; Android 8 only has regular and bold.
         if (Build.VERSION.SDK_INT >= 28) return Weighted.create(weight);
         return Typeface.create(Typeface.DEFAULT, weight >= 600 ? Typeface.BOLD : Typeface.NORMAL);
+    }
+
+    private static final class Api26Font {
+        static Typeface build(AssetManager a, String path, int opticalSize, int weight) {
+            return new Typeface.Builder(a, path)
+                    .setFontVariationSettings("'opsz' " + opticalSize + ", 'wght' " + weight).build();
+        }
     }
 
     /** Only this class touches the Android 9 call, so Ui itself still verifies on Android 8 (like Recording.Node). */
@@ -454,6 +470,36 @@ final class Ui {
     /** "21:47" (in 12-hour English, "9:47", like the iPhone in the US). */
     static String clock(long now) {
         return Ui.datePattern("format|h:mm").format(now);
+    }
+
+    /** "9:45" or "21:45" */
+    static String clockTime(long now) {
+        boolean h24 = Prefs.clock24();
+        return once(h24 ? "clock24" : "clock12", now, () ->
+                new SimpleDateFormat(h24 ? "HH:mm" : "h:mm", locale).format(new Date(now)));
+    }
+
+    /** "AM" or "PM" for 12-hour format, or empty for 24-hour. */
+    static String clockAmPm(long now) {
+        if (Prefs.clock24()) return "";
+        return once("ampm", now, () ->
+                new SimpleDateFormat("a", locale).format(new Date(now))).toUpperCase(locale);
+    }
+
+    /** Greeting based on hour of day: "Good morning", "Good afternoon", "Good evening". */
+    static String greeting(long now) {
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        cal.setTimeInMillis(now);
+        int hour = cal.get(java.util.Calendar.HOUR_OF_DAY);
+        String g;
+        if (hour >= 5 && hour < 12) {
+            g = Ui.tr("Good morning");
+        } else if (hour >= 12 && hour < 18) {
+            g = Ui.tr("Good afternoon");
+        } else {
+            g = Ui.tr("Good evening");
+        }
+        return g.toUpperCase(locale);
     }
 
     /** "5:21" (sunrise and sunset; in 12-hour English, "5:21 AM", in 24-hour English, "05:21"). */
