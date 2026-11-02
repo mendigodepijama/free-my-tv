@@ -22,6 +22,8 @@ import android.text.TextPaint;
 import android.text.TextUtils;
 import android.view.Choreographer;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
+import android.app.Activity;
 import android.view.View;
 import android.view.accessibility.AccessibilityNodeProvider;
 import android.view.inputmethod.EditorInfo;
@@ -121,6 +123,11 @@ public class SettingsActivity extends Activity {
         }
         if (view.onKey(event)) return true;
         return super.dispatchKeyEvent(event);
+    }
+
+    @Override public boolean dispatchGenericMotionEvent(MotionEvent ev) {
+        if (view != null && view.dispatchGenericMotionEvent(ev)) return true;
+        return super.dispatchGenericMotionEvent(ev);
     }
 
     void showPreview() {
@@ -700,6 +707,86 @@ public class SettingsActivity extends Activity {
                 default:
                     return false;
             }
+        }
+
+        private boolean handleBack() {
+            if (screen == MAIN) return false;
+            if (screen == PICKER && pickFor <= PICK_SLEEP) {
+                focus = powerFocus(pickFor == PICK_SLEEP ? P_SLEEP : P_WHERE);
+                pickScroll = 0;
+                screen = POWER;
+            } else if (screen == PICKER && (pickFor == PICK_CITY || pickFor == PICK_LANGUAGE)) {
+                focus = pickFor == PICK_CITY ? CITY_ROW : 0;
+                pickScroll = 0;
+                screen = HOME_SETTINGS;
+            } else if (screen == PICKER) {
+                focus = pickFor - 1;
+                screen = REMOTE_KEYS;
+            } else {
+                focus = screen == HOME_SETTINGS ? 2 : screen == SHELF_EDIT ? (editingTop ? 4 : 3)
+                        : screen == REMOTE_KEYS ? 5 : screen == POWER ? 6 : 0;
+                screen = MAIN;
+            }
+            invalidate();
+            spoken.focusMoved();
+            return true;
+        }
+
+        @Override public boolean onGenericMotionEvent(MotionEvent event) {
+            if (event.getAction() == MotionEvent.ACTION_SCROLL) {
+                float v = event.getAxisValue(MotionEvent.AXIS_VSCROLL);
+                if (v < -0.1f) {
+                    onKey(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_DOWN));
+                    return true;
+                } else if (v > 0.1f) {
+                    onKey(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_UP));
+                    return true;
+                }
+            }
+            return super.onGenericMotionEvent(event);
+        }
+
+        @Override public boolean onTouchEvent(MotionEvent e) {
+            int action = e.getActionMasked();
+            if (action == MotionEvent.ACTION_DOWN) {
+                if (e.isButtonPressed(MotionEvent.BUTTON_SECONDARY)) {
+                    if (!handleBack() && getContext() instanceof Activity) ((Activity) getContext()).finish();
+                    return true;
+                }
+                return true;
+            } else if (action == MotionEvent.ACTION_UP) {
+                if ((e.getButtonState() & MotionEvent.BUTTON_SECONDARY) != 0 || e.isButtonPressed(MotionEvent.BUTTON_SECONDARY)) {
+                    if (!handleBack() && getContext() instanceof Activity) ((Activity) getContext()).finish();
+                    return true;
+                }
+                float x = e.getX(), y = e.getY();
+                if (x < 800 * k) {
+                    if (!handleBack() && getContext() instanceof Activity) ((Activity) getContext()).finish();
+                    return true;
+                }
+                if (x >= (LIST_X - 30) * k && x <= (LIST_R + 30) * k) {
+                    int r = -1;
+                    if (screen == MAIN) {
+                        float top = MAIN_TOP * k, pitch = (ROW_H + MAIN_GAP) * k;
+                        r = (int) ((y - top) / pitch);
+                    } else if (screen == HOME_CHOICE) {
+                        float top = (LIST_TOP + 20) * k, pitch = (CHOICE_H + ROW_GAP) * k;
+                        r = (int) ((y - top) / pitch);
+                    } else {
+                        float top = (LIST_TOP + 20) * k, pitch = (LIST_ROW_H + LIST_ROW_GAP) * k;
+                        r = (int) ((y - top) / pitch);
+                    }
+                    if (r >= 0 && r < rowCount()) {
+                        focus = r;
+                        activate();
+                        whyRows = null;
+                        invalidate();
+                        spoken.keyClick();
+                        return true;
+                    }
+                }
+            }
+            return super.onTouchEvent(e);
         }
 
         // MARK: - Home Settings and Remote Buttons

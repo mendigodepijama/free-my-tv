@@ -26,6 +26,7 @@ import android.text.TextPaint;
 import android.text.TextUtils;
 import android.view.Choreographer;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.accessibility.AccessibilityManager;
@@ -246,6 +247,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private String weatherLineLanguage = "";
     private long clockMinute = -1;
     private boolean okDown, backDown;
+    private float downX, downY;
+    private long downTime;
 
     private Paint labelPaint, metaPaint, clockPaint, buttonPaint, capsuleText, tipPaint, quotePaint, staleQuote;
     private Paint rowTitle, drawerLabel, cardTitle, cardText, cardDim, cardDimRight, bigTemp, hourPaint, hourTemp, dayLow;
@@ -2222,6 +2225,162 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private void appsChanged() {
         appsStale = true;
         if (running) reloadSoon();
+    }
+
+    // MARK: - Touch & Mouse events: click, right-click (Back), drag and mouse wheel scroll
+
+    @Override public boolean onInterceptTouchEvent(MotionEvent ev) {
+        return true;
+    }
+
+    @Override public boolean onTouchEvent(MotionEvent e) {
+        wake();
+        int action = e.getActionMasked();
+        if (action == MotionEvent.ACTION_DOWN) {
+            downX = e.getX();
+            downY = e.getY();
+            downTime = SystemClock.uptimeMillis();
+            if (e.isButtonPressed(MotionEvent.BUTTON_SECONDARY)) {
+                back();
+                return true;
+            }
+            return true;
+        } else if (action == MotionEvent.ACTION_UP) {
+            if ((e.getButtonState() & MotionEvent.BUTTON_SECONDARY) != 0 || e.isButtonPressed(MotionEvent.BUTTON_SECONDARY)) {
+                back();
+                return true;
+            }
+            float dx = Math.abs(e.getX() - downX);
+            float dy = Math.abs(e.getY() - downY);
+            if (dx > 45 * k || dy > 45 * k) {
+                if (sheetOpen) {
+                    if (downY - e.getY() > 45 * k) moveGrid(0, 1);
+                    else if (e.getY() - downY > 45 * k) moveGrid(0, -1);
+                } else if (dx > dy) {
+                    if (downX - e.getX() > 45 * k) move(1, 0);
+                    else move(-1, 0);
+                } else {
+                    if (downY - e.getY() > 45 * k) {
+                        if (!drawerOpen) openDrawer();
+                    } else if (e.getY() - downY > 45 * k) {
+                        if (drawerOpen) closeDrawer();
+                    }
+                }
+                return true;
+            }
+            return handleClick(e.getX(), e.getY());
+        }
+        return super.onTouchEvent(e);
+    }
+
+    @Override public boolean onGenericMotionEvent(MotionEvent event) {
+        if (event.getAction() == MotionEvent.ACTION_SCROLL) {
+            wake();
+            float v = event.getAxisValue(MotionEvent.AXIS_VSCROLL);
+            float h = event.getAxisValue(MotionEvent.AXIS_HSCROLL);
+            if (sheetOpen) {
+                if (v < -0.1f) {
+                    moveGrid(0, 1);
+                    return true;
+                } else if (v > 0.1f) {
+                    moveGrid(0, -1);
+                    return true;
+                }
+            } else {
+                if (v < -0.1f || h > 0.1f) {
+                    move(1, 0);
+                    return true;
+                } else if (v > 0.1f || h < -0.1f) {
+                    move(-1, 0);
+                    return true;
+                }
+            }
+        }
+        return super.onGenericMotionEvent(event);
+    }
+
+    private boolean handleClick(float x, float y) {
+        if (sheetOpen) {
+            int n = others.size();
+            float shift = scroll.value * GRID_ROW * k;
+            float gridWidth = COLUMNS * GRID_W + (COLUMNS - 1) * GRID_GAP;
+            float left = (1920 - gridWidth) / 2 * k;
+            float gridTop = GRID_TOP * k;
+            for (int i = 0; i < n; i++) {
+                int r = i / COLUMNS, col = i % COLUMNS;
+                float cy = gridTop + r * GRID_ROW * k - shift;
+                if (cy > h || cy + GRID_ROW * k < 0) continue;
+                float cx = left + col * (GRID_W + GRID_GAP) * k;
+                if (x >= cx && x <= cx + GRID_W * k && y >= cy && y <= cy + GRID_H * k) {
+                    gridIndex = i;
+                    focusedCell.set(cx, cy, cx + GRID_W * k, cy + GRID_H * k);
+                    activate();
+                    return true;
+                }
+            }
+            closeSheet();
+            return true;
+        }
+
+        if (drawerOpen) {
+            float drawerY = drawerLayer.getTop();
+            if (y < drawerY) {
+                closeDrawer();
+                return true;
+            }
+            for (int i = 0; i < drawerItems.size(); i++) {
+                if (i >= drawerRects.length) break;
+                RectF r = drawerRects[i];
+                if (x >= r.left && x <= r.right && y >= drawerY + r.top && y <= drawerY + r.bottom) {
+                    drawerIndex = i;
+                    activate();
+                    return true;
+                }
+            }
+            return true;
+        }
+
+        for (int i = 0; i < lightButtons.size(); i++) {
+            if (3 + i >= topRects.length) break;
+            RectF r = topRects[3 + i];
+            if (r != null && x >= r.left - 12 * k && x <= r.right + 12 * k
+                    && y >= r.top - 12 * k && y <= r.bottom + 12 * k) {
+                zone = Z_TOP;
+                topIndex = 3 + i;
+                retarget(false);
+                activate();
+                return true;
+            }
+        }
+
+        if (shelf.size() > shelfVisible) {
+            float inset = 30 * k;
+            if (x >= platterRect.right - inset * 2 && x <= platterRect.right + inset && y >= platterRect.top - 20 * k && y <= platterRect.bottom + 20 * k) {
+                move(1, 0);
+                return true;
+            }
+            if (x >= platterRect.left - inset && x <= platterRect.left + inset * 2 && y >= platterRect.top - 20 * k && y <= platterRect.bottom + 20 * k) {
+                move(-1, 0);
+                return true;
+            }
+        }
+
+        for (int i = 0; i < shelf.size(); i++) {
+            if (i >= tileRects.length) break;
+            RectF r = tileRects[i];
+            float slid = i < tileSlide.length ? tileSlide[i].value : 0;
+            float left = r.left + slid, right = r.right + slid;
+            if (right <= platterRect.left || left >= platterRect.right) continue;
+            if (x >= left && x <= right && y >= r.top - 15 * k && y <= r.bottom + 15 * k) {
+                zone = Z_SHELF;
+                shelfIndex = i;
+                retarget(false);
+                activate();
+                return true;
+            }
+        }
+
+        return false;
     }
 
     // MARK: - Keys: only the arrows, OK, Back and Settings (system keys pass through to the system)

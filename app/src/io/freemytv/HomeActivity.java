@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.widget.TextView;
 
 /**
@@ -87,6 +88,11 @@ public class HomeActivity extends Activity {
         if (RemoteKeys.onKey(this, event)) return true;
         if (home != null && home.onKey(event)) return true;
         return super.dispatchKeyEvent(event);
+    }
+
+    @Override public boolean dispatchGenericMotionEvent(MotionEvent ev) {
+        if (home != null && home.dispatchGenericMotionEvent(ev)) return true;
+        return super.dispatchGenericMotionEvent(ev);
     }
 
 }
