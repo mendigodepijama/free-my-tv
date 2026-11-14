@@ -263,5 +263,8 @@
   "{n} min ago": "{n} min temu",
   "{n} ms": "{n} ms",
   "{time} left": "zostało {time}",
-  "← → to move · OK to drop · Back to cancel": "← → przesuwa · OK upuszcza · Wstecz anuluje"
+  "← → to move · OK to drop · Back to cancel": "← → przesuwa · OK upuszcza · Wstecz anuluje",
+  "Power": "Zasilanie",
+  "Power off": "Wyłącz",
+  "Restart": "Uruchom ponownie"
 }

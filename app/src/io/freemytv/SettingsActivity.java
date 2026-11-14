@@ -1254,7 +1254,10 @@ public class SettingsActivity extends Activity {
                 focus = i - pickScroll;
                 break;
             }
-            if (editingTop) Prefs.setTopButtons(shelfOrder); else Prefs.setShelf(shelfOrder);
+            if (editingTop) {
+                Prefs.setPowerButtonConfigured();
+                Prefs.setTopButtons(shelfOrder);
+            } else Prefs.setShelf(shelfOrder);
         }
 
         /** OK: puts the app on the shelf (at the end) or takes it off. */

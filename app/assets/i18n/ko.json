@@ -263,5 +263,8 @@
   "{n} min ago": "{n}분 전",
   "{n} ms": "{n}ms",
   "{time} left": "{time} 남음",
-  "← → to move · OK to drop · Back to cancel": "← → 이동 · OK 배치 · 뒤로 취소"
+  "← → to move · OK to drop · Back to cancel": "← → 이동 · OK 배치 · 뒤로 취소",
+  "Power": "전원",
+  "Power off": "전원 끄기",
+  "Restart": "다시 시작"
 }

@@ -263,5 +263,8 @@
   "{n} min ago": "πριν από {n} λ.",
   "{n} ms": "{n} ms",
   "{time} left": "απομένουν {time}",
-  "← → to move · OK to drop · Back to cancel": "← → μετακίνηση · OK τοποθέτηση · Πίσω ακύρωση"
+  "← → to move · OK to drop · Back to cancel": "← → μετακίνηση · OK τοποθέτηση · Πίσω ακύρωση",
+  "Power": "Λειτουργία",
+  "Power off": "Απενεργοποίηση",
+  "Restart": "Επανεκκίνηση"
 }

@@ -310,6 +310,14 @@ final class Prefs {
         put("topButtons", sb.toString());
     }
 
+    static boolean hasPowerButtonConfigured() {
+        return sp().contains("powerConfigured");
+    }
+
+    static void setPowerButtonConfigured() {
+        put("powerConfigured", true);
+    }
+
     // MARK: - Remote buttons
 
     private static String defaultApp(int keyCode) {

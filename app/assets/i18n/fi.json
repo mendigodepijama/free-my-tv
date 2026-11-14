@@ -263,5 +263,8 @@
   "{n} min ago": "{n} min sitten",
   "{n} ms": "{n} ms",
   "{time} left": "{time} jäljellä",
-  "← → to move · OK to drop · Back to cancel": "← → siirrä · OK pudota · Takaisin peruuta"
+  "← → to move · OK to drop · Back to cancel": "← → siirrä · OK pudota · Takaisin peruuta",
+  "Power": "Virta",
+  "Power off": "Sammuta",
+  "Restart": "Käynnistä uudelleen"
 }

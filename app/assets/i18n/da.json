@@ -263,5 +263,8 @@
   "{n} min ago": "for {n} min siden",
   "{n} ms": "{n} ms",
   "{time} left": "{time} tilbage",
-  "← → to move · OK to drop · Back to cancel": "← → flyt · OK slip · Tilbage annuller"
+  "← → to move · OK to drop · Back to cancel": "← → flyt · OK slip · Tilbage annuller",
+  "Power": "Tænd/sluk",
+  "Power off": "Sluk",
+  "Restart": "Genstart"
 }

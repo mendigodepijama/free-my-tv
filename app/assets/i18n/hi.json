@@ -263,5 +263,8 @@
   "{n} min ago": "{n} मि पहले",
   "{n} ms": "{n} ms",
   "{time} left": "{time} बाकी",
-  "← → to move · OK to drop · Back to cancel": "← → खिसकाएँ · OK छोड़ें · वापस रद्द करें"
+  "← → to move · OK to drop · Back to cancel": "← → खिसकाएँ · OK छोड़ें · वापस रद्द करें",
+  "Power": "पावर",
+  "Power off": "बंद करें",
+  "Restart": "पुनरारंभ करें"
 }

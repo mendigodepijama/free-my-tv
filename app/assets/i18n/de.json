@@ -263,5 +263,8 @@
   "{n} min ago": "vor {n} Min.",
   "{n} ms": "{n} ms",
   "{time} left": "noch {time}",
-  "← → to move · OK to drop · Back to cancel": "← → verschieben · OK ablegen · Zurück abbrechen"
+  "← → to move · OK to drop · Back to cancel": "← → verschieben · OK ablegen · Zurück abbrechen",
+  "Power": "Ein/Aus",
+  "Power off": "Ausschalten",
+  "Restart": "Neu starten"
 }

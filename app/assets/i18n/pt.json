@@ -263,5 +263,8 @@
   "{n} min ago": "há {n} min",
   "{n} ms": "{n} ms",
   "{time} left": "faltam {time}",
-  "← → to move · OK to drop · Back to cancel": "← → para mover · OK para soltar · Voltar para cancelar"
+  "← → to move · OK to drop · Back to cancel": "← → para mover · OK para soltar · Voltar para cancelar",
+  "Power": "Energia",
+  "Power off": "Desligar",
+  "Restart": "Reiniciar"
 }

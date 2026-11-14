@@ -263,5 +263,8 @@
   "{n} min ago": "{n} min geleden",
   "{n} ms": "{n} ms",
   "{time} left": "nog {time}",
-  "← → to move · OK to drop · Back to cancel": "← → verplaatsen · OK neerzetten · Terug annuleren"
+  "← → to move · OK to drop · Back to cancel": "← → verplaatsen · OK neerzetten · Terug annuleren",
+  "Power": "Aan/uit",
+  "Power off": "Uitschakelen",
+  "Restart": "Opnieuw opstarten"
 }

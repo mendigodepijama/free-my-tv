@@ -263,5 +263,8 @@
   "{n} min ago": "{n}分前",
   "{n} ms": "{n} ms",
   "{time} left": "残り{time}",
-  "← → to move · OK to drop · Back to cancel": "← → 移動 · OK 配置 · 戻る キャンセル"
+  "← → to move · OK to drop · Back to cancel": "← → 移動 · OK 配置 · 戻る キャンセル",
+  "Power": "電源",
+  "Power off": "電源を切る",
+  "Restart": "再起動"
 }

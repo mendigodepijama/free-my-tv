@@ -263,5 +263,8 @@
   "{n} min ago": "{n} хв тому",
   "{n} ms": "{n} мс",
   "{time} left": "залишилось {time}",
-  "← → to move · OK to drop · Back to cancel": "← → перемістити · OK розмістити · Назад скасувати"
+  "← → to move · OK to drop · Back to cancel": "← → перемістити · OK розмістити · Назад скасувати",
+  "Power": "Живлення",
+  "Power off": "Вимкнути",
+  "Restart": "Перезавантажити"
 }

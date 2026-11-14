@@ -263,5 +263,8 @@
   "{n} min ago": "{n} 分鐘前",
   "{n} ms": "{n} 毫秒",
   "{time} left": "剩餘 {time}",
-  "← → to move · OK to drop · Back to cancel": "按 ← → 移動 · 按 OK 放置 · 按返回取消"
+  "← → to move · OK to drop · Back to cancel": "按 ← → 移動 · 按 OK 放置 · 按返回取消",
+  "Power": "電源",
+  "Power off": "關機",
+  "Restart": "重新啟動"
 }

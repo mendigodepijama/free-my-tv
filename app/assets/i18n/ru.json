@@ -263,5 +263,8 @@
   "{n} min ago": "{n} мин назад",
   "{n} ms": "{n} мс",
   "{time} left": "осталось {time}",
-  "← → to move · OK to drop · Back to cancel": "← → — переместить · OK — оставить · Назад — отмена"
+  "← → to move · OK to drop · Back to cancel": "← → — переместить · OK — оставить · Назад — отмена",
+  "Power": "Питание",
+  "Power off": "Выключить",
+  "Restart": "Перезагрузить"
 }

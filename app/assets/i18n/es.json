@@ -263,5 +263,8 @@
   "{n} min ago": "hace {n} min",
   "{n} ms": "{n} ms",
   "{time} left": "quedan {time}",
-  "← → to move · OK to drop · Back to cancel": "← → para mover · OK para soltar · Atrás para cancelar"
+  "← → to move · OK to drop · Back to cancel": "← → para mover · OK para soltar · Atrás para cancelar",
+  "Power": "Energía",
+  "Power off": "Apagar",
+  "Restart": "Reiniciar"
 }

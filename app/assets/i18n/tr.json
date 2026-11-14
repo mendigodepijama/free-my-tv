@@ -263,5 +263,8 @@
   "{n} min ago": "{n} dk önce",
   "{n} ms": "{n} ms",
   "{time} left": "{time} kaldı",
-  "← → to move · OK to drop · Back to cancel": "← → taşı · OK bırak · Geri iptal"
+  "← → to move · OK to drop · Back to cancel": "← → taşı · OK bırak · Geri iptal",
+  "Power": "Güç",
+  "Power off": "Kapat",
+  "Restart": "Yeniden başlat"
 }

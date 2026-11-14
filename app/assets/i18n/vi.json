@@ -263,5 +263,8 @@
   "{n} min ago": "{n} phút trước",
   "{n} ms": "{n} ms",
   "{time} left": "còn {time}",
-  "← → to move · OK to drop · Back to cancel": "← → di chuyển · OK đặt · Quay lại hủy"
+  "← → to move · OK to drop · Back to cancel": "← → di chuyển · OK đặt · Quay lại hủy",
+  "Power": "Nguồn",
+  "Power off": "Tắt nguồn",
+  "Restart": "Khởi động lại"
 }
