@@ -211,7 +211,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private int drawerInputs;          // how many leading items are inputs (the rest are shortcuts)
     private Spring[] drawerFocus = new Spring[0];
     private RectF[] drawerRects = new RectF[0];
-    private final RectF weatherCard = new RectF(), quotesCard = new RectF();
+    private final RectF weatherCard = new RectF(), quotesCard = new RectF(), topWeatherCard = new RectF();
+    private final Snapshot topWeatherSnapshot = new Snapshot();
     private final Spring drawer = new Spring(0.46f, 0.92f, 0);
     private boolean drawerOpen;
     private int drawerIndex;
@@ -1657,12 +1658,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             snap(drawerRects[i]);
             x += tw + gap;
         }
-        float cardsTop = CARDS_TOP * k, split = left + (right - left) * 0.585f;
-        boolean wx = Prefs.weather(), qt = Prefs.quotes() && HomeData.active().length > 0;
-        // A card that is off gives its room to the other one.
-        weatherCard.set(left, cardsTop, qt ? split - 16 * k : right, cardsTop + CARDS_H * k);
-        quotesCard.set(wx ? split + 16 * k : left, cardsTop, right, cardsTop + CARDS_H * k);
-        snap(weatherCard);
+        float cardsTop = CARDS_TOP * k;
+        quotesCard.set(left, cardsTop, right, cardsTop + CARDS_H * k);
         snap(quotesCard);
         // The symbols at their sizes at rest and focused: drawing them never scales one.
         for (HomeApps.Item it : drawerItems) {
@@ -1716,9 +1713,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         drawerGlass(c, r, 30 * k, 0.72f, 0x1A000000, 10 * k);
     }
 
-    private void drawDrawer(Canvas c) {
-        if (drawerItems.isEmpty()) return;
-        rowTitle.setColor(tone(L_DIM, 0xB3FFFFFF));
+    private void applyCardColors() {
         cardTitle.setColor(tone(L_DIM, 0xB3FFFFFF));
         cardText.setColor(drawerInk(0.95f));
         cardDim.setColor(tone(L_DIM, 0xADFFFFFF));
@@ -1728,6 +1723,19 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         hourTemp.setColor(drawerInk(0.95f));
         dayLow.setColor(tone(L_DIM, 0xADFFFFFF));
         pricePaint.setColor(drawerInk(0.95f));
+    }
+
+    private void drawWeatherTop(Canvas c) {
+        applyCardColors();
+        drawerCard(c, topWeatherCard);
+        if (Ui.LEGACY) topWeatherSnapshot.draw(c, topWeatherCard, drawerCardsKey(), cc -> drawWeather(cc, topWeatherCard));
+        else drawWeather(c, topWeatherCard);
+    }
+
+    private void drawDrawer(Canvas c) {
+        if (drawerItems.isEmpty()) return;
+        rowTitle.setColor(tone(L_DIM, 0xB3FFFFFF));
+        applyCardColors();
         float titleBase = ROW_TITLE * k;
         if (drawerInputs > 0) c.drawText(Ui.tr("Inputs"), drawerRects[0].left + 4 * k, titleBase, rowTitle);
         if (drawerInputs < drawerItems.size()) c.drawText(Ui.tr("Shortcuts"), drawerRects[drawerInputs].left + 4 * k, titleBase, rowTitle);
@@ -1735,7 +1743,6 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         for (int i = 0; i < drawerItems.size(); i++) if (drawerFocus[i].value > 0.02f && (top < 0 || drawerFocus[i].value > drawerFocus[top].value)) top = i;
         for (int i = 0; i < drawerItems.size(); i++) if (i != top) drawDrawerTile(c, i);
         if (top >= 0) drawDrawerTile(c, top);
-        if (Prefs.weather()) drawWeatherCard(c, weatherCard);
         if (Prefs.quotes() && HomeData.active().length > 0) drawQuotesCard(c, quotesCard);
     }
 
@@ -2906,11 +2913,10 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             for (int i = 0; i < others.size(); i++) out.add(a11yId(GRID, i));
             return;
         }
-        for (int i = picksOn() ? 0 : 3; i < 3 + lightButtons.size(); i++) out.add(a11yId(Z_TOP, i));
-        for (int i = 0; i < Math.min(3, cards.size()); i++) out.add(a11yId(Z_CARDS, i));
+        for (int i = 3; i < 3 + lightButtons.size(); i++) out.add(a11yId(Z_TOP, i));
         for (int i = shelfFirst; i < Math.min(shelf.size(), shelfFirst + shelfVisible); i++) out.add(a11yId(Z_SHELF, i));
         for (int i = 0; i < drawerItems.size(); i++) out.add(a11yId(Z_DRAWER, i));
-        if (drawerOpen && Prefs.weather()) out.add(a11yId(WIDGETS, 0));
+        if (Prefs.weather()) out.add(a11yId(WIDGETS, 0));
         if (drawerOpen && Prefs.quotes() && HomeData.active().length > 0) out.add(a11yId(WIDGETS, 1));
     }
 
@@ -2974,9 +2980,14 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
                 dy = drawerOpen ? 0 : h;
                 break;
             case WIDGETS:
-                if (!drawerOpen) return false;
-                a11yRect.set(i == 0 ? weatherCard : quotesCard);
-                dy = 0;
+                if (i == 0) {
+                    a11yRect.set(topWeatherCard);
+                    dy = heroLayer.getTranslationY();
+                } else {
+                    if (!drawerOpen) return false;
+                    a11yRect.set(quotesCard);
+                    dy = 0;
+                }
                 break;
             default:
                 return false;
@@ -3146,11 +3157,19 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         cardRects[1].set(cardRects[0].right + g, top, cardRects[0].right + g + tall, top + ch);
         cardRects[2].set(cardRects[1].right + g, top, cardRects[1].right + g + tall, top + ch);
         for (RectF r : cardRects) snap(r);
+        float wLeft = MARGIN * k, wRight = CONTENT_R * k;
+        float wTop = 240 * k, wH = 340 * k;
+        topWeatherCard.set(wLeft, wTop, wRight, wTop + wH);
+        snap(topWeatherCard);
         for (HomeApps.Item it : lightButtons) {
             Symbols.warm(getContext(), it.symbol, 27 * k);
             Symbols.warm(getContext(), it.symbol, 27 * k * 1.1f);
         }
+        Symbols.warmWeather(getContext(), 52 * k);
         Symbols.warmWeather(getContext(), 40 * k);
+        Symbols.warmWeather(getContext(), 30 * k);
+        Symbols.warm(getContext(), "sunrise", 22 * k);
+        Symbols.warm(getContext(), "sunset", 22 * k);
         heroDirty = statusDirty = true;
     }
 
@@ -3233,41 +3252,10 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
 
     private void drawLightTop(Canvas c) {
         applyTone();
-        if (!picksOn()) {
-            drawClock(c);
-            if (HomeData.coinCount() > 0 || playingTab != null) drawQuotes(c);
-            return;
+        drawClock(c);
+        if (Prefs.weather()) {
+            drawWeatherTop(c);
         }
-        String hello = Ui.tr("For You");
-        c.drawText(hello, MARGIN * k - Ui.leftBearing(lTitle, hello), L_TITLE_BASE * k, lTitle);
-        // Text tabs (the selected one in bold, in the main text color); with focus on the tabs, the selected one gets
-        // the white pill with a shadow and grows a little (the tvOS focus).
-        float focus = Ui.clamp(topFocus[tab].value);
-        for (int i = 0; i < 3; i++) {
-            RectF r = topRects[i];
-            if (i == tab && focus > 0.01f) {
-                float s = 1 + 0.05f * focus;
-                cell.set(r.centerX() - r.width() * s / 2, r.centerY() - r.height() * s / 2,
-                        r.centerX() + r.width() * s / 2, r.centerY() + r.height() * s / 2);
-                float rr = cell.height() / 2;
-                if (focus > 0.01f) {
-                    tmp.set(cell);
-                    tmp.offset(0, 8 * k * focus);
-                    shadow.setColor(Ui.alpha(0xFF000000, tone(0.22f, 0.4f) * focus));
-                    shadows.draw(c, tmp, rr, SHADOW_BLUR * k, shadow);
-                }
-                fill.setShader(null);
-                fill.setColor(Ui.alpha(0xFFFFFFFF, focus));
-                c.drawRoundRect(cell, rr, rr, fill);
-            }
-            Paint p = i == tab ? lTabOn : lTab;
-            if (i == tab) lTabOn.setColor(blend(tone(L_INK, WHITE), L_INK, focus));   // always dark on the white pill
-            c.drawText(tabs()[i], r.centerX() - p.measureText(tabs()[i]) / 2, r.centerY() + Ui.halfCap(p), p);
-        }
-        int top = -1;
-        for (int i = 0; i < 3; i++) if (cardFocus[i].value > 0.02f && (top < 0 || cardFocus[i].value > cardFocus[top].value)) top = i;
-        for (int i = 0; i < 3; i++) if (i != top) drawLightCard(c, i);
-        if (top >= 0) drawLightCard(c, top);
         if (HomeData.coinCount() > 0 || playingTab != null) drawQuotes(c);
     }
 
@@ -3293,23 +3281,6 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
 
         String dateUpper = (dateText != null ? dateText : "").toUpperCase(Ui.locale());
         c.drawText(dateUpper, curX, base - 4 * k, lDate);
-        curX += lDate.measureText(dateUpper);
-
-        HomeData.Weather wx = data.weather;
-        if (Prefs.weather() && !Double.isNaN(wx.temp)) {
-            float sep2X = curX + 18 * k;
-            c.drawLine(sep2X, base - 34 * k, sep2X, base - 4 * k, lSeparator);
-            curX = sep2X + 18 * k;
-
-            String symbol = Symbols.weather(wx.code, wx.isDay);
-            float iconSize = 24 * k;
-            float sw = Symbols.width(getContext(), symbol, iconSize);
-            Symbols.draw(getContext(), c, symbol, curX + sw / 2, base - 4 * k - Ui.halfCap(lWeather), iconSize, lWeather.getColor());
-            curX += sw + 8 * k;
-
-            String temp = HomeData.degrees(wx.temp);
-            c.drawText(temp, curX, base - 4 * k, lWeather);
-        }
     }
 
     /**
@@ -3421,45 +3392,22 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private boolean moveLight(int dx, int dy) {
         switch (zone) {
             case Z_SHELF:
-                // Up from an empty shelf too: move()'s older zones (the hero, the corner capsule) aren't drawn any more.
+                // Up from the shelf goes to the top buttons
                 if (dy >= 0) return false;
-                if (cards.isEmpty()) {
-                    if (!picksOn() && lightButtons.isEmpty()) return true;   // no tabs and no buttons above
-                    zone = Z_TOP;
-                    topIndex = picksOn() ? tab : 3;
-                } else {
-                    zone = Z_CARDS;
-                    cardIndex = nearest(cardRects, cards.size(), shelf.isEmpty() ? w / 2f : tileRects[shelfIndex].centerX());
-                }
+                if (lightButtons.isEmpty()) return true;
+                zone = Z_TOP;
+                topIndex = 3;
                 break;
             case Z_CARDS:
-                if (dx != 0) {
-                    int next = Math.max(0, Math.min(cards.size() - 1, cardIndex + dx));
-                    if (next == cardIndex) return true;
-                    cardIndex = next;
-                } else if (dy < 0) {
-                    zone = Z_TOP;
-                    topIndex = tab;     // as on Apple TV: moving up to the tabs focuses the selected tab
-                } else {
-                    zone = Z_SHELF;
-                    if (!shelf.isEmpty()) shelfIndex = nearest(tileRects, tileRects.length, cardRects[cardIndex].centerX());
-                }
+                zone = Z_SHELF;
                 break;
             case Z_TOP:
                 if (dx != 0) {
-                    int next = Math.max(picksOn() ? 0 : 3, Math.min(2 + lightButtons.size(), topIndex + dx));
+                    int next = Math.max(3, Math.min(2 + lightButtons.size(), topIndex + dx));
                     if (next == topIndex) return true;
                     topIndex = next;
-                    if (topIndex < 3) selectTab(topIndex);   // like Apple TV tabs: focusing a tab selects it
                 } else if (dy > 0) {
-                    if (cards.isEmpty()) {
-                        zone = Z_SHELF;
-                    } else {
-                        zone = Z_CARDS;
-                        cardIndex = nearest(cardRects, cards.size(), topRects[topIndex].centerX());
-                    }
-                } else if (topIndex < 3 && !lightButtons.isEmpty()) {
-                    topIndex = 3;   // up from the tabs reaches the corner buttons without walking the row
+                    zone = Z_SHELF;
                 } else {
                     return true;
                 }
